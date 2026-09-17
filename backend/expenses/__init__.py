@@ -1,0 +1,1 @@
+# Expenses application package

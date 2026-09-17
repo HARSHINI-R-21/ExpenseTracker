@@ -1,0 +1,15 @@
+# Python Virtual Environment
+venv/
+*.pyc
+__pycache__/
+
+# Database
+*.sqlite3
+db.sqlite3
+
+# Environment & Secrets
+.env
+
+# IDE / Editor folders
+.vscode/
+.idea/
