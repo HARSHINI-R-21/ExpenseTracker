@@ -138,21 +138,29 @@ function renderTable(expenses) {
         const tr = document.createElement('tr');
         tr.setAttribute('data-id', expense.id);
 
-        const formattedAmount = `$${parseFloat(expense.amount).toFixed(2)}`;
+        const amountNum = parseFloat(expense.amount);
+        const formattedAmount = `₹${isNaN(amountNum) ? '0.00' : amountNum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         const formattedDate = formatDateDisplay(expense.date);
         const descriptionText = expense.description ? escapeHtml(expense.description) : '<span class="text-muted">—</span>';
+        const categorySlug = (expense.category || '').toLowerCase().replace(/[^a-z0-9]/g, '-');
 
         tr.innerHTML = `
-            <td>#${expense.id}</td>
-            <td><strong>${escapeHtml(expense.title)}</strong></td>
+            <td class="td-id">#${expense.id}</td>
+            <td class="td-title"><strong>${escapeHtml(expense.title)}</strong></td>
             <td class="td-amount">${formattedAmount}</td>
-            <td><span class="category-badge">${escapeHtml(expense.category)}</span></td>
-            <td>${formattedDate}</td>
+            <td><span class="category-badge cat-${categorySlug}">${escapeHtml(expense.category)}</span></td>
+            <td class="td-date">${formattedDate}</td>
             <td class="td-desc" title="${escapeHtml(expense.description || '')}">${descriptionText}</td>
             <td class="td-actions">
                 <div class="action-buttons">
-                    <button type="button" class="btn btn-sm btn-edit" data-action="edit" data-id="${expense.id}">Edit</button>
-                    <button type="button" class="btn btn-sm btn-delete" data-action="delete" data-id="${expense.id}">Delete</button>
+                    <button type="button" class="btn btn-sm btn-edit" data-action="edit" data-id="${expense.id}">
+                        <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        Edit
+                    </button>
+                    <button type="button" class="btn btn-sm btn-delete" data-action="delete" data-id="${expense.id}">
+                        <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        Delete
+                    </button>
                 </div>
             </td>
         `;
@@ -169,9 +177,9 @@ function updateDashboardSummary() {
     const totalSum = expensesList.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
     const average = totalCount > 0 ? totalSum / totalCount : 0;
 
-    summaryTotalAmount.textContent = `$${totalSum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    summaryTotalAmount.textContent = `₹${totalSum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     summaryTotalCount.textContent = totalCount;
-    summaryAverageAmount.textContent = `$${average.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    summaryAverageAmount.textContent = `₹${average.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 /**
@@ -295,8 +303,8 @@ function validateFormData(title, amount, category, date) {
  * @param {Event} e - Click event
  */
 function handleTableActionClick(e) {
-    const target = e.target;
-    if (!target.matches('button[data-action]')) return;
+    const target = e.target.closest('button[data-action]');
+    if (!target) return;
 
     const action = target.getAttribute('data-action');
     const id = parseInt(target.getAttribute('data-id'), 10);
@@ -415,6 +423,10 @@ function resetFilters() {
 function showFormError(msg) {
     formErrorBanner.textContent = msg;
     formErrorBanner.classList.remove('hidden');
+    formErrorBanner.classList.remove('shake-animation');
+    // Force reflow for animation restart
+    void formErrorBanner.offsetWidth;
+    formErrorBanner.classList.add('shake-animation');
 }
 
 /**
@@ -423,6 +435,7 @@ function showFormError(msg) {
 function hideFormError() {
     formErrorBanner.textContent = '';
     formErrorBanner.classList.add('hidden');
+    formErrorBanner.classList.remove('shake-animation');
 }
 
 /**
@@ -435,7 +448,13 @@ function showToast(message, type = 'success') {
         clearTimeout(toastTimeoutId);
     }
 
-    toastBanner.textContent = message;
+    const iconSvg = type === 'success' 
+        ? `<svg class="toast-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`
+        : type === 'error'
+        ? `<svg class="toast-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`
+        : `<svg class="toast-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+
+    toastBanner.innerHTML = `${iconSvg}<span>${escapeHtml(message)}</span>`;
     toastBanner.className = `toast toast-${type}`;
     toastBanner.classList.remove('hidden');
 
